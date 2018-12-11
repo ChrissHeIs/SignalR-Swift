@@ -62,7 +62,10 @@ public class ServerSentEventsTransport: HttpTransport {
     }
     
     override public func lostConnection(connection: ConnectionProtocol) {
-
+        if let connection = connection as? Connection {
+            connection.stopButDoNotCallServer()
+            connection.disconnect()
+        }
     }
     
     // MARK: - SSE Transport
