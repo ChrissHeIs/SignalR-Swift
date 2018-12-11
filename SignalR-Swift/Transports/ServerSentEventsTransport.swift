@@ -19,6 +19,12 @@ public class ServerSentEventsTransport: HttpTransport {
     
     var reconnectDelay: TimeInterval = 2.0
     
+    var request: DataRequest?
+    
+    deinit {
+        request?.cancel()
+    }
+    
     override public var name: String? {
         return "serverSentEvents"
     }
@@ -82,14 +88,15 @@ public class ServerSentEventsTransport: HttpTransport {
         
         let url = isReconnecting ? connection.url.appending("reconnect") : connection.url.appending("connect")
         
-        connection.getRequest(url: url,
-                              httpMethod: .get,
-                              encoding: URLEncoding.default,
-                              parameters: parameters,
-                              timeout: 240,
-                              headers: ["Connection": "Keep-Alive"])
-        .stream { [weak self] data in
-            self?.sseQueue.async { [weak connection] in
+        request?.cancel()
+        request = connection.getRequest(url: url,
+                                        httpMethod: .get,
+                                        encoding: URLEncoding.default,
+                                        parameters: parameters,
+                                        timeout: 15,
+                                        headers: ["Connection": "Keep-Alive"])
+            .stream { [weak self] data in
+                self?.sseQueue.async { [weak connection] in
                 guard let strongSelf = self, let strongConnection = connection else { return }
                 
                 strongSelf.buffer.append(data: data)
