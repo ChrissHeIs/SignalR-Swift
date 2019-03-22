@@ -25,6 +25,10 @@ public class ServerSentEventsTransport: HttpTransport {
         request?.cancel()
     }
     
+    public override init() {
+        // Empty method to make it visible
+    }
+    
     override public var name: String? {
         return "serverSentEvents"
     }
