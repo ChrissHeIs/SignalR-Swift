@@ -38,7 +38,7 @@ public class ServerSentEventsTransport: HttpTransport {
     }
     
     override public func negotiate(connection: ConnectionProtocol, connectionData: String?, completionHandler: ((NegotiationResponse?, Error?) -> ())?) {
-        super.negotiate(connection: connection, connectionData: connectionData, completionHandler: nil)
+        super.negotiate(connection: connection, connectionData: connectionData, completionHandler: completionHandler)
     }
     
     override public func start(connection: ConnectionProtocol, connectionData: String?, completionHandler: ((Any?, Error?) -> ())?) {
