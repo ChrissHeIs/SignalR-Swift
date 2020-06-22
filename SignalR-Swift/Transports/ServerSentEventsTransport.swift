@@ -14,6 +14,13 @@ private typealias CompletionHandler = (_ respomce: Any?, _ error: Error?) -> ()
 public class ServerSentEventsTransport: HttpTransport {
     private var stop = false
     private var connectTimeoutOperation: BlockOperation?
+    private var reconnectOperation: BlockOperation? {
+        willSet {
+            if let reconnectOperation = reconnectOperation {
+                NSObject.cancelPreviousPerformRequests(withTarget: reconnectOperation, selector: #selector(BlockOperation.start), object: nil)
+            }
+        }
+    }
     private var completionHandler: CompletionHandler?
     private let sseQueue = DispatchQueue(label: "com.autosoftdms.SignalR-Swift.serverSentEvents", qos: .userInitiated)
     
@@ -83,6 +90,8 @@ public class ServerSentEventsTransport: HttpTransport {
     private let buffer = ChunkBuffer()
     
     private func open(connection: ConnectionProtocol, connectionData: String?, isReconnecting: Bool) {
+        startedAbort = false
+        stop = false
         var parameters = connection.queryString ?? [:]
         parameters["transport"] = self.name!
         parameters["connectionToken"] = connection.connectionToken ?? ""
@@ -114,6 +123,7 @@ public class ServerSentEventsTransport: HttpTransport {
             guard let strongSelf = self, let strongConnection = connection else { return }
             
             strongSelf.cancelTimeoutOperation()
+            strongSelf.reconnectOperation = nil
             
             if let error = dataResponse.error as NSError?, error.code != NSURLErrorCancelled {
                 strongConnection.didReceiveError(error: error)
@@ -122,7 +132,7 @@ public class ServerSentEventsTransport: HttpTransport {
             if strongSelf.stop {
                 strongSelf.completeAbort()
             } else if !strongSelf.tryCompleteAbort() && !isReconnecting {
-                strongSelf.reconnect(connection: strongConnection, data: connectionData)
+//                strongSelf.reconnect(connection: strongConnection, data: connectionData)
             }
         }
     }
@@ -163,11 +173,12 @@ public class ServerSentEventsTransport: HttpTransport {
     }
     
     private func reconnect(connection: ConnectionProtocol, data: String?) {
-        _ = BlockOperation { [weak self, weak connection] in
+        reconnectOperation = BlockOperation { [weak self, weak connection] in
             if let strongSelf = self, let strongConnection = connection,
                strongConnection.state != .disconnected, Connection.ensureReconnecting(connection: strongConnection) {
                 strongSelf.open(connection: strongConnection, connectionData: data, isReconnecting: true)
             }
-        }.perform(#selector(BlockOperation.start), with: nil, afterDelay: self.reconnectDelay)
+        }
+        reconnectOperation?.perform(#selector(BlockOperation.start), with: nil, afterDelay: self.reconnectDelay)
     }
 }
