@@ -66,6 +66,6 @@ public class HubProxy: HubProxyProtocol {
                                     args: args,
                                     state: self.state)
         
-        connection.send(object: hubData.toJSONString()!, completionHandler: completionHandler)
+        connection.send(object: hubData.toJSONString()!, completionHandler: nil)
     }
 }
