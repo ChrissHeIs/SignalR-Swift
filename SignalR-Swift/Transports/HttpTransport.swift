@@ -10,6 +10,11 @@ import Foundation
 import Alamofire
 
 public class HttpTransport: ClientTransportProtocol {
+    
+    public var responseSerializer: (DataRequest, @escaping (DataResponse<Any>)->Void) -> Void = { request, completion in
+        request.responseJSON(completionHandler: completion)
+    }
+    
 
     public var name: String? {
         return ""
@@ -28,7 +33,7 @@ public class HttpTransport: ClientTransportProtocol {
 
         let encodedRequest = connection.getRequest(url: url, httpMethod: .get, encoding: URLEncoding.default, parameters: parameters, timeout: 30.0)
 
-        encodedRequest.validate().responseJSON { (response: DataResponse<Any>) in
+        responseSerializer(encodedRequest.validate()) { (response: DataResponse<Any>) in
             switch response.result {
             case .success(let result):
                 if let json = result as? [String: Any] {
@@ -68,7 +73,7 @@ public class HttpTransport: ClientTransportProtocol {
         }
         
         let request = connection.getRequest(url: encodedRequestURL, httpMethod: .post, encoding: URLEncoding.httpBody, parameters: requestParams)
-        request.validate().responseJSON { (response: DataResponse<Any>) in
+        responseSerializer(request.validate()) { (response: DataResponse<Any>) in
             switch response.result {
             case .success(let result):
                 connection.didReceiveData(data: result)
